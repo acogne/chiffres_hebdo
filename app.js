@@ -385,6 +385,7 @@ async function handleGoogleSignIn() {
         await fetchUserProfile();
         try {
           await loadAllSheets();
+          renderDashboard();
           showDashboard();
         } catch (error) {
           showAlert(error.message);
