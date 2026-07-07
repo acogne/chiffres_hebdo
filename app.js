@@ -505,9 +505,22 @@ function init() {
   updateStatus();
   enableTabs();
   setAccentForRadio();
-  googleSignIn.addEventListener('click', handleGoogleSignIn);
+  // Primary sign-in buttons: if already authenticated, ensure dashboard shows; otherwise start auth
+  googleSignIn.addEventListener('click', () => {
+    if (token) {
+      ensureDashboardVisible();
+    } else {
+      handleGoogleSignIn();
+    }
+  });
   if (googleSignInCenter) {
-    googleSignInCenter.addEventListener('click', handleGoogleSignIn);
+    googleSignInCenter.addEventListener('click', () => {
+      if (token) {
+        ensureDashboardVisible();
+      } else {
+        handleGoogleSignIn();
+      }
+    });
   }
   downloadPdf.addEventListener('click', downloadDashboardPdf);
   weekSelect.addEventListener('change', event => {
@@ -519,3 +532,22 @@ function init() {
 }
 
 init();
+
+// Ensure dashboard will be rendered and shown when token is available
+async function ensureDashboardVisible() {
+  try {
+    console.debug('ensureDashboardVisible called, token=', token);
+    if (!token) return;
+    // If data not loaded yet, load sheets first
+    const hasData = SHEET_TABS.every(tab => Array.isArray(rawData[tab]) && rawData[tab].length > 0);
+    if (!hasData) {
+      dashboardContent.innerHTML = '<p>Chargement des données…</p>';
+      await loadAllSheets();
+    }
+    renderDashboard();
+    showDashboard();
+  } catch (e) {
+    console.error('ensureDashboardVisible error', e);
+    showAlert('Impossible d’afficher le dashboard pour le moment.');
+  }
+}
