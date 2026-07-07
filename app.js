@@ -74,7 +74,10 @@ function getQueryUrl(tab) {
 }
 
 async function fetchSheet(tab) {
-  const response = await fetch(getQueryUrl(tab), {
+  console.debug('fetchSheet start for tab', tab);
+  const url = getQueryUrl(tab);
+  console.debug('fetchSheet url', url);
+  const response = await fetch(url, {
     headers: { Authorization: `Bearer ${token}` }
   });
 
@@ -88,13 +91,16 @@ async function fetchSheet(tab) {
     }
 
     if (response.status === 401 || response.status === 403) {
+      console.error('fetchSheet unauthorized', tab, response.status, message);
       throw new Error('Accès non autorisé');
     }
 
+    console.error('fetchSheet error', tab, response.status, message);
     throw new Error(message || 'Erreur Google Sheets');
   }
 
   const result = await response.json();
+  console.debug('fetchSheet result for', tab, result?.values?.length || 0);
   return result.values || [];
 }
 
@@ -329,27 +335,35 @@ function setAccentForRadio() {
 }
 
 async function loadAllSheets() {
+  console.debug('loadAllSheets start');
   const requests = SHEET_TABS.map(async tab => {
     try {
       const values = await fetchSheet(tab);
       rawData[tab] = parseValues(values);
       sheetErrors[tab] = null;
+      console.debug('loadAllSheets: parsed', tab, rawData[tab].length);
     } catch (error) {
       rawData[tab] = [];
       sheetErrors[tab] = error.message;
+      console.error('loadAllSheets error for', tab, error);
     }
   });
 
-  await Promise.all(requests);
+  try {
+    await Promise.all(requests);
+  } catch (e) {
+    console.error('loadAllSheets Promise.all error', e);
+  }
 
+  console.debug('loadAllSheets completed, sheetErrors=', sheetErrors);
   const latestWeek = getLatestWeekCodeFromAll();
   if (!latestWeek) {
+    console.error('loadAllSheets: no latestWeek found');
     throw new Error('Aucune donnée trouvée pour la semaine la plus récente.');
   }
   currentWeekCode = latestWeek;
   populateWeekSelect();
   updateStatus();
-  renderDashboard();
 }
 
 function populateWeekSelect() {
