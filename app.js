@@ -358,8 +358,11 @@ async function loadAllSheets() {
   console.debug('loadAllSheets completed, sheetErrors=', sheetErrors);
   const latestWeek = getLatestWeekCodeFromAll();
   if (!latestWeek) {
-    console.error('loadAllSheets: no latestWeek found');
-    throw new Error('Aucune donnée trouvée pour la semaine la plus récente.');
+    console.warn('loadAllSheets: no latestWeek found — proceeding without week selection');
+    currentWeekCode = null;
+    populateWeekSelect();
+    updateStatus();
+    return;
   }
   currentWeekCode = latestWeek;
   populateWeekSelect();
