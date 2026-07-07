@@ -1,10 +1,25 @@
 :root {
   color-scheme: light;
-  color: #111;
-  background: #f6f7f8;
-  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --accent-one: #DC0814;
+  --accent-two: #3FCFD5;
+  --accent: var(--accent-one);
+  --bg: #f6f7f8;
+  --surface: #ffffff;
+  --text: #111827;
+  --muted: #4b5563;
+  color: var(--text);
+  background: var(--bg);
+  font-family: 'Montserrat', sans-serif;
   font-size: 15px;
   line-height: 1.5;
+}
+
+body.accent-onefm {
+  --accent: var(--accent-one);
+}
+
+body.accent-radiolac {
+  --accent: var(--accent-two);
 }
 
 * {
@@ -14,7 +29,7 @@
 body {
   margin: 0;
   min-height: 100vh;
-  background: #f6f7f8;
+  background: var(--bg);
 }
 
 .page-shell {
@@ -27,34 +42,56 @@ body {
   display: flex;
   justify-content: space-between;
   gap: 18px;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   margin-bottom: 24px;
 }
 
 .eyebrow {
-  margin: 0 0 8px;
-  color: #6b7280;
+  margin: 0 0 6px;
+  color: var(--muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.85rem;
+  letter-spacing: 0.12em;
+  font-size: 0.8rem;
 }
 
 h1 {
   margin: 0;
-  font-size: clamp(2rem, 2.4vw, 2.8rem);
-  letter-spacing: -0.03em;
+  font-size: clamp(1.7rem, 2.2vw, 2.2rem);
+  letter-spacing: -0.02em;
+  color: var(--text);
 }
 
 .subtitle {
-  margin: 12px 0 0;
-  color: #4b5563;
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.95rem;
 }
 
 .header-actions {
   display: flex;
   gap: 12px;
+  align-items: center;
   flex-wrap: wrap;
+}
+
+.user-info {
+  color: var(--muted);
+  font-size: 0.95rem;
+  margin-right: 8px;
+  white-space: nowrap;
+}
+
+.brand-block {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.brand-logo {
+  width: 82px;
+  height: auto;
+  object-fit: contain;
 }
 
 .button {
@@ -63,7 +100,7 @@ h1 {
   padding: 12px 18px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
 }
 
 .button:hover {
@@ -71,30 +108,40 @@ h1 {
 }
 
 .button-primary {
-  background: #111827;
-  color: #fff;
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .button-secondary {
   background: #ffffff;
-  color: #111827;
-  border-color: #d1d5db;
+  color: var(--accent);
+  border-color: rgba(15, 23, 42, 0.12);
 }
 
 .status-bar {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  align-items: center;
   margin-bottom: 22px;
 }
 
-.status-chip {
-  border-radius: 999px;
-  padding: 10px 14px;
+.week-select-label {
+  color: var(--muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.week-select {
+  border-radius: 12px;
+  border: 1px solid #d1d5db;
   background: #ffffff;
-  border: 1px solid #e5e7eb;
-  color: #111827;
+  color: var(--text);
+  padding: 12px 14px;
   font-size: 0.95rem;
+  min-width: 220px;
 }
 
 #alertContainer {
@@ -128,9 +175,9 @@ h1 {
 }
 
 .radio-tab.active {
-  background: #111827;
+  background: var(--accent);
   color: #ffffff;
-  border-color: #111827;
+  border-color: var(--accent);
 }
 
 .dashboard-content {

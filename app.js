@@ -2,7 +2,10 @@ const SHEET_ID = '1o9ar5X8tV9SDfqKTOx958SGg0Hx_8Suw04a2l1s88Rs';
 const SHEET_TABS = ['SiteWeb', 'SearchConsole', 'Social', 'TopPages', 'TopPosts'];
 const SCOPES = [
   'https://www.googleapis.com/auth/spreadsheets.readonly',
-  'https://www.googleapis.com/auth/webmasters.readonly'
+  'https://www.googleapis.com/auth/webmasters.readonly',
+  'openid',
+  'email',
+  'profile'
 ];
 
 let token = null;
@@ -11,14 +14,14 @@ let currentRadio = 'One FM';
 let currentWeekCode = null;
 let rawData = {};
 let sheetErrors = {};
+let userProfile = null;
 
-const authStatus = document.getElementById('authStatus');
-const sheetStatus = document.getElementById('sheetStatus');
-const currentWeek = document.getElementById('currentWeek');
 const alertContainer = document.getElementById('alertContainer');
 const dashboardContent = document.getElementById('dashboardContent');
 const googleSignIn = document.getElementById('googleSignIn');
 const downloadPdf = document.getElementById('downloadPdf');
+const userInfo = document.getElementById('userInfo');
+const weekSelect = document.getElementById('weekSelect');
 
 function showAlert(message) {
   alertContainer.innerHTML = `<div class="alert">${message}</div>`;
@@ -29,8 +32,7 @@ function clearAlert() {
 }
 
 function updateStatus() {
-  authStatus.textContent = token ? 'Connecté' : 'Non connecté';
-  currentWeek.textContent = currentWeekCode ? `Semaine sélectionnée : ${currentWeekCode}` : 'Semaine sélectionnée : -';
+  userInfo.textContent = token && userProfile ? `${userProfile.name || userProfile.email || ''}` : '';
 }
 
 function getQueryUrl(tab) {
@@ -128,7 +130,8 @@ function renderOverviewWeb(siteRows) {
   const variation = safeNumber(row['Variation sessions']);
   const users = safeNumber(row['Utilisateurs totaux']);
   const pageviews = safeNumber(row['Pages vues']);
-  const avgSession = row['Durée moyenne de session'] || '-';
+  const avgSessionRaw = row['Durée moyenne de session'];
+  const avgSession = avgSessionRaw === undefined || avgSessionRaw === '' || avgSessionRaw.toString().toLowerCase() === 'nan' ? '-' : avgSessionRaw;
   const organic = safeNumber(row['Trafic organique']);
   const socials = safeNumber(row['Trafic réseaux sociaux']);
   const direct = safeNumber(row['Trafic direct']);
@@ -270,9 +273,26 @@ function enableTabs() {
       document.querySelectorAll('.radio-tab').forEach(tab => tab.classList.remove('active'));
       button.classList.add('active');
       currentRadio = button.dataset.radio;
+      setAccentForRadio();
       renderDashboard();
     });
   });
+}
+
+function setAccentForRadio() {
+  const body = document.body;
+  const logo = document.getElementById('brandLogo');
+  if (currentRadio === 'One FM') {
+    body.classList.add('accent-onefm');
+    body.classList.remove('accent-radiolac');
+    logo.src = 'images/One FM.png';
+    logo.alt = 'Logo One FM';
+  } else {
+    body.classList.add('accent-radiolac');
+    body.classList.remove('accent-onefm');
+    logo.src = 'images/Radio Lac.png';
+    logo.alt = 'Logo Radio Lac';
+  }
 }
 
 async function loadAllSheets() {
@@ -294,8 +314,35 @@ async function loadAllSheets() {
     throw new Error('Aucune donnée trouvée pour la semaine la plus récente.');
   }
   currentWeekCode = latestWeek;
+  populateWeekSelect();
   updateStatus();
   renderDashboard();
+}
+
+function populateWeekSelect() {
+  const weeks = [...new Set(SHEET_TABS.flatMap(tab => (rawData[tab] || []).map(row => row['Code semaine']).filter(Boolean)))].sort();
+  if (!weeks.length) {
+    weekSelect.innerHTML = '<option>Aucune semaine disponible</option>';
+    weekSelect.disabled = true;
+    return;
+  }
+  weekSelect.innerHTML = weeks.map(week => `<option value="${week}"${week === currentWeekCode ? ' selected' : ''}>${week}</option>`).join('');
+  weekSelect.disabled = false;
+}
+
+async function fetchUserProfile() {
+  try {
+    const response = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!response.ok) {
+      throw new Error('Impossible de récupérer le profil utilisateur');
+    }
+    userProfile = await response.json();
+    updateStatus();
+  } catch (error) {
+    console.warn('User profile fetch failed', error);
+  }
 }
 
 async function handleGoogleSignIn() {
@@ -315,7 +362,7 @@ async function handleGoogleSignIn() {
           return;
         }
         token = response.access_token;
-        updateStatus();
+        await fetchUserProfile();
         try {
           await loadAllSheets();
         } catch (error) {
@@ -328,11 +375,64 @@ async function handleGoogleSignIn() {
   tokenClient.requestAccessToken();
 }
 
+function downloadDashboardPdf() {
+  clearAlert();
+  const button = downloadPdf;
+  button.disabled = true;
+  button.textContent = 'Génération PDF…';
+
+  const element = document.querySelector('.page-shell');
+  if (!element || !window.html2canvas || !window.jspdf) {
+    showAlert('Impossible de générer le PDF pour le moment.');
+    button.disabled = false;
+    button.textContent = 'Télécharger en PDF';
+    return;
+  }
+
+  html2canvas(element, { scale: 2, backgroundColor: '#f6f7f8', scrollY: -window.scrollY })
+    .then(canvas => {
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      const { jsPDF } = window.jspdf;
+      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const pageHeight = pdf.internal.pageSize.getHeight();
+      const imgWidth = pageWidth;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft > 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      pdf.save(`${currentRadio.replace(/\s+/g, '_')}_${currentWeekCode || 'rapport'}.pdf`);
+    })
+    .catch(error => {
+      console.error(error);
+      showAlert('Échec de la génération du PDF.');
+    })
+    .finally(() => {
+      button.disabled = false;
+      button.textContent = 'Télécharger en PDF';
+    });
+}
+
 function init() {
   updateStatus();
   enableTabs();
+  setAccentForRadio();
   googleSignIn.addEventListener('click', handleGoogleSignIn);
-  downloadPdf.addEventListener('click', () => showAlert('Fonction PDF non implémentée pour l’instant'));
+  downloadPdf.addEventListener('click', downloadDashboardPdf);
+  weekSelect.addEventListener('change', event => {
+    currentWeekCode = event.target.value;
+    renderDashboard();
+  });
   dashboardContent.innerHTML = '<p>Connectez-vous avec Google pour charger les données.</p>';
 }
 

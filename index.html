@@ -4,27 +4,37 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rapport hebdomadaire digital — One FM & Radio Lac</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css" />
   <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" integrity="sha512-BNa5jRQCQaiUJwflU4jqMiDPkVEe/JM9YCW1HW3QO2k8NNuDxKi5yBHUZu5j/DpvIpbN5jli+fQ1HdrPgf1Y1g==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" integrity="sha512-I8cuTzpdfsnxpGfLvQ6IKXKx2ZH3e3xqczs3zN8xuHJW8gDgp3mJv8EeajAI0aOxg1jWezqPkbRZteBS1x4QoqQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 </head>
-<body>
+<body class="accent-onefm">
   <div class="page-shell">
     <header class="page-header">
-      <div>
-        <p class="eyebrow">Rapport hebdomadaire digital</p>
-        <h1>One FM &amp; Radio Lac</h1>
-        <p class="subtitle">Données en direct depuis Google Sheets — connexion Google requise</p>
+      <div class="brand-block">
+        <img id="brandLogo" class="brand-logo" src="images/One FM.png" alt="Logo One FM" />
+        <div>
+          <p class="eyebrow">Rapport hebdomadaire digital</p>
+          <h1>One FM &amp; Radio Lac</h1>
+          <p class="subtitle">Données hebdomadaires en direct depuis Google Sheets</p>
+        </div>
       </div>
       <div class="header-actions">
+        <div id="userInfo" class="user-info"></div>
         <button id="googleSignIn" class="button button-primary">Se connecter avec Google</button>
         <button id="downloadPdf" class="button button-secondary">Télécharger en PDF</button>
       </div>
     </header>
 
     <section class="status-bar">
-      <div id="authStatus" class="status-chip">Non connecté</div>
-      <div id="currentWeek" class="status-chip">Semaine sélectionnée : -</div>
-      <div id="sheetStatus" class="status-chip">Google Sheet : 1o9ar5X8tV9SDfqKTOx958SGg0Hx_8Suw04a2l1s88Rs</div>
+      <label class="week-select-label" for="weekSelect">Semaine</label>
+      <select id="weekSelect" class="week-select" disabled>
+        <option>Chargement...</option>
+      </select>
     </section>
 
     <div id="alertContainer"></div>
