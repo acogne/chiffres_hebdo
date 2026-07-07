@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rapport hebdomadaire digital — One FM & Radio Lac</title>
+  <link rel="stylesheet" href="styles.css" />
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</head>
+<body>
+  <div class="page-shell">
+    <header class="page-header">
+      <div>
+        <p class="eyebrow">Rapport hebdomadaire digital</p>
+        <h1>One FM &amp; Radio Lac</h1>
+        <p class="subtitle">Données en direct depuis Google Sheets — connexion Google requise</p>
+      </div>
+      <div class="header-actions">
+        <button id="googleSignIn" class="button button-primary">Se connecter avec Google</button>
+        <button id="downloadPdf" class="button button-secondary">Télécharger en PDF</button>
+      </div>
+    </header>
+
+    <section class="status-bar">
+      <div id="authStatus" class="status-chip">Non connecté</div>
+      <div id="currentWeek" class="status-chip">Semaine sélectionnée : -</div>
+      <div id="sheetStatus" class="status-chip">Google Sheet : 1o9ar5X8tV9SDfqKTOx958SGg0Hx_8Suw04a2l1s88Rs</div>
+    </section>
+
+    <div id="alertContainer"></div>
+
+    <nav class="radio-tabs" aria-label="Onglets radios">
+      <button class="radio-tab active" data-radio="One FM">One FM</button>
+      <button class="radio-tab" data-radio="Radio Lac">Radio Lac</button>
+    </nav>
+
+    <main id="dashboardContent" class="dashboard-content"></main>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
