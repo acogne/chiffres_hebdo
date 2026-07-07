@@ -372,6 +372,12 @@ async function handleGoogleSignIn() {
     return;
   }
 
+  if (token && dashboardWrapper && dashboardWrapper.classList.contains('hidden')) {
+    renderDashboard();
+    showDashboard();
+    return;
+  }
+
   if (!tokenClient) {
     tokenClient = google.accounts.oauth2.initTokenClient({
       client_id: '476748970851-jfaraub4h66nvht8isqkf66nfks9g5qs.apps.googleusercontent.com',
@@ -384,9 +390,12 @@ async function handleGoogleSignIn() {
         token = response.access_token;
         await fetchUserProfile();
         try {
+          dashboardContent.innerHTML = '<p>Chargement des données…</p>';
           await loadAllSheets();
           renderDashboard();
           showDashboard();
+          if (googleSignIn) googleSignIn.disabled = true;
+          if (googleSignInCenter) googleSignInCenter.disabled = true;
         } catch (error) {
           showAlert(error.message);
         }
