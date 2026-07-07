@@ -42,12 +42,25 @@ function updateStatus() {
       googleSignInCenter.textContent = 'Connecté';
       googleSignInCenter.disabled = true;
     }
+    console.debug('updateStatus: token present, userProfile=', userProfile);
   }
 }
 
 function showDashboard() {
-  if (loginScreen) loginScreen.classList.add('hidden');
-  if (dashboardWrapper) dashboardWrapper.classList.remove('hidden');
+  console.debug('showDashboard called, token=', token);
+  try {
+    if (loginScreen) {
+      loginScreen.classList.add('hidden');
+      loginScreen.style.display = 'none';
+    }
+    if (dashboardWrapper) {
+      dashboardWrapper.classList.remove('hidden');
+      dashboardWrapper.style.display = '';
+    }
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } catch (e) {
+    console.error('showDashboard error', e);
+  }
 }
 
 function showLoginScreen() {
@@ -373,6 +386,7 @@ async function handleGoogleSignIn() {
   }
 
   if (token && dashboardWrapper && dashboardWrapper.classList.contains('hidden')) {
+    console.debug('handleGoogleSignIn: token already present, rendering dashboard');
     renderDashboard();
     showDashboard();
     return;
@@ -385,18 +399,33 @@ async function handleGoogleSignIn() {
       callback: async response => {
         if (response.error) {
           showAlert(`Erreur d'authentification Google : ${response.error}`);
+          console.warn('tokenClient callback error', response.error);
           return;
         }
+        console.debug('tokenClient callback response', response);
         token = response.access_token;
         await fetchUserProfile();
         try {
+          // show a quick loading state
           dashboardContent.innerHTML = '<p>Chargement des données…</p>';
+          console.debug('Loading sheets with token present...');
           await loadAllSheets();
+          console.debug('Sheets loaded, rendering dashboard');
           renderDashboard();
+          // Force hide the login block in case CSS/class manipulation failed
           showDashboard();
+          if (loginScreen) {
+            loginScreen.style.display = 'none';
+            loginScreen.classList.add('hidden');
+          }
+          if (dashboardWrapper) {
+            dashboardWrapper.style.display = '';
+            dashboardWrapper.classList.remove('hidden');
+          }
           if (googleSignIn) googleSignIn.disabled = true;
           if (googleSignInCenter) googleSignInCenter.disabled = true;
         } catch (error) {
+          console.error('Error loading sheets after auth', error);
           showAlert(error.message);
         }
       }
