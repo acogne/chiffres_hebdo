@@ -19,9 +19,12 @@ let userProfile = null;
 const alertContainer = document.getElementById('alertContainer');
 const dashboardContent = document.getElementById('dashboardContent');
 const googleSignIn = document.getElementById('googleSignIn');
+const googleSignInCenter = document.getElementById('googleSignInCenter');
 const downloadPdf = document.getElementById('downloadPdf');
 const userInfo = document.getElementById('userInfo');
 const weekSelect = document.getElementById('weekSelect');
+const loginScreen = document.getElementById('loginScreen');
+const dashboardWrapper = document.getElementById('dashboardWrapper');
 
 function showAlert(message) {
   alertContainer.innerHTML = `<div class="alert">${message}</div>`;
@@ -33,6 +36,23 @@ function clearAlert() {
 
 function updateStatus() {
   userInfo.textContent = token && userProfile ? `${userProfile.name || userProfile.email || ''}` : '';
+  if (token) {
+    googleSignIn.textContent = 'Connecté';
+    if (googleSignInCenter) {
+      googleSignInCenter.textContent = 'Connecté';
+      googleSignInCenter.disabled = true;
+    }
+  }
+}
+
+function showDashboard() {
+  if (loginScreen) loginScreen.classList.add('hidden');
+  if (dashboardWrapper) dashboardWrapper.classList.remove('hidden');
+}
+
+function showLoginScreen() {
+  if (loginScreen) loginScreen.classList.remove('hidden');
+  if (dashboardWrapper) dashboardWrapper.classList.add('hidden');
 }
 
 function getQueryUrl(tab) {
@@ -365,6 +385,7 @@ async function handleGoogleSignIn() {
         await fetchUserProfile();
         try {
           await loadAllSheets();
+          showDashboard();
         } catch (error) {
           showAlert(error.message);
         }
@@ -378,22 +399,26 @@ async function handleGoogleSignIn() {
 function downloadDashboardPdf() {
   clearAlert();
   const button = downloadPdf;
+  if (!button) return;
   button.disabled = true;
   button.textContent = 'Génération PDF…';
 
-  const element = document.querySelector('.page-shell');
-  if (!element || !window.html2canvas || !window.jspdf) {
+  const element = document.querySelector('#dashboardWrapper');
+  const canvasLib = window.html2canvas;
+  const jsPDFNamespace = window.jspdf || window.jsPDF;
+  const jsPDFClass = jsPDFNamespace?.jsPDF || jsPDFNamespace;
+
+  if (!element || !canvasLib || !jsPDFClass) {
     showAlert('Impossible de générer le PDF pour le moment.');
     button.disabled = false;
     button.textContent = 'Télécharger en PDF';
     return;
   }
 
-  html2canvas(element, { scale: 2, backgroundColor: '#f6f7f8', scrollY: -window.scrollY })
+  canvasLib(element, { scale: 2, backgroundColor: '#f6f7f8', scrollY: -window.scrollY })
     .then(canvas => {
       const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const { jsPDF } = window.jspdf;
-      const pdf = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+      const pdf = new jsPDFClass({ unit: 'mm', format: 'a4', orientation: 'portrait' });
       const pageWidth = pdf.internal.pageSize.getWidth();
       const pageHeight = pdf.internal.pageSize.getHeight();
       const imgWidth = pageWidth;
@@ -428,11 +453,15 @@ function init() {
   enableTabs();
   setAccentForRadio();
   googleSignIn.addEventListener('click', handleGoogleSignIn);
+  if (googleSignInCenter) {
+    googleSignInCenter.addEventListener('click', handleGoogleSignIn);
+  }
   downloadPdf.addEventListener('click', downloadDashboardPdf);
   weekSelect.addEventListener('change', event => {
     currentWeekCode = event.target.value;
     renderDashboard();
   });
+  showLoginScreen();
   dashboardContent.innerHTML = '<p>Connectez-vous avec Google pour charger les données.</p>';
 }
 

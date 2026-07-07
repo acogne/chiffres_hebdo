@@ -4,6 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Rapport hebdomadaire digital — One FM & Radio Lac</title>
+  <link rel="icon" href="images/icon.svg" type="image/svg+xml">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -14,37 +15,45 @@
 </head>
 <body class="accent-onefm">
   <div class="page-shell">
-    <header class="page-header">
-      <div class="brand-block">
-        <img id="brandLogo" class="brand-logo" src="images/One FM.png" alt="Logo One FM" />
-        <div>
-          <p class="eyebrow">Rapport hebdomadaire digital</p>
-          <h1>One FM &amp; Radio Lac</h1>
-          <p class="subtitle">Données hebdomadaires en direct depuis Google Sheets</p>
+    <div id="loginScreen" class="login-screen">
+      <div class="login-card">
+        <img src="images/icon.svg" alt="Icône" class="login-icon" />
+        <h2>Bienvenue</h2>
+        <p>Connecte-toi avec ton compte Google pour accéder aux chiffres digitaux</p>
+        <button id="googleSignInCenter" class="button button-primary">Continuer avec Google</button>
+      </div>
+    </div>
+
+    <section id="dashboardWrapper" class="dashboard-wrapper hidden">
+      <header class="page-header">
+        <div class="brand-block">
+          <img id="brandLogo" class="brand-logo" src="images/One FM.png" alt="Logo One FM" />
+          <div>
+            <p class="eyebrow">Rapport hebdomadaire digital</p>
+            <h1>One FM &amp; Radio Lac</h1>
+          </div>
         </div>
-      </div>
-      <div class="header-actions">
-        <div id="userInfo" class="user-info"></div>
-        <button id="googleSignIn" class="button button-primary">Se connecter avec Google</button>
-        <button id="downloadPdf" class="button button-secondary">Télécharger en PDF</button>
-      </div>
-    </header>
+        <div class="header-actions">
+          <div id="userInfo" class="user-info"></div>
+          <button id="googleSignIn" class="button button-primary">Se connecter avec Google</button>
+          <button id="downloadPdf" class="button button-secondary">Télécharger en PDF</button>
+        </div>
+      </header>
 
-    <section class="status-bar">
-      <label class="week-select-label" for="weekSelect">Semaine</label>
-      <select id="weekSelect" class="week-select" disabled>
-        <option>Chargement...</option>
-      </select>
+        <select id="weekSelect" class="week-select" disabled>
+          <option>Chargement...</option>
+        </select>
+      </section>
+
+      <div id="alertContainer"></div>
+
+      <nav class="radio-tabs" aria-label="Onglets radios">
+        <button class="radio-tab active" data-radio="One FM">One FM</button>
+        <button class="radio-tab" data-radio="Radio Lac">Radio Lac</button>
+      </nav>
+
+      <main id="dashboardContent" class="dashboard-content"></main>
     </section>
-
-    <div id="alertContainer"></div>
-
-    <nav class="radio-tabs" aria-label="Onglets radios">
-      <button class="radio-tab active" data-radio="One FM">One FM</button>
-      <button class="radio-tab" data-radio="Radio Lac">Radio Lac</button>
-    </nav>
-
-    <main id="dashboardContent" class="dashboard-content"></main>
   </div>
 
   <script src="app.js" defer></script>
