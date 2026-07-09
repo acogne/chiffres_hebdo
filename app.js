@@ -136,6 +136,14 @@ function safeNumber(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function parsePercent(value) {
+  if (value === null || value === undefined || value === '') return null;
+  const s = value.toString().trim().replace('%', '').replace(/\s+/g, '');
+  const normalized = s.replace(',', '.');
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function formatNumber(value) {
   if (value === null || value === undefined || value === '') return '-';
   return new Intl.NumberFormat('fr-FR').format(value);
@@ -166,7 +174,8 @@ function renderOverviewWeb(siteRows) {
 
   const row = siteRows[0] || {};
   const sessions = safeNumber(row['Sessions totales']);
-  const variation = safeNumber(row['Variation sessions']);
+  const variationPct = parsePercent(row['Variation sessions (%)']) ?? parsePercent(row['Variation sessions']) ;
+  const variationNb = safeNumber(row['Variation session (nb)']) ?? safeNumber(row['Variation sessions (nb)']) ?? safeNumber(row['Variation sessions']);
   const users = safeNumber(row['Utilisateurs totaux']);
   const pageviews = safeNumber(row['Pages vues']);
   const avgSessionRaw = row['Durée moyenne de session'];
@@ -178,10 +187,18 @@ function renderOverviewWeb(siteRows) {
   const newUsers = safeNumber(row['Nouveaux utilisateurs']);
   const returningUsers = safeNumber(row['Utilisateurs récurrents']);
 
+  // Users variations (new naming in sheet)
+  const usersVariationPct = parsePercent(row['Variation utilisateurs totaux (%)']) ?? parsePercent(row['Variation utilisateurs totaux']) ;
+  const usersVariationNb = safeNumber(row['Variation utilisateurs totaux (nb)']) ?? safeNumber(row['Variation utilisateurs totaux']);
+
+  // Pageviews variations
+  const pagesVariationPct = parsePercent(row['Variation pages vues (%)']) ?? parsePercent(row['Variation pages vues']);
+  const pagesVariationNb = safeNumber(row['Variation pages vues (nb)']) ?? safeNumber(row['Variation pages vues']);
+
   const content = `
     <div class="cards-grid">
-      ${renderKpiCard('Sessions totales', sessions, variation !== null ? `Variation : ${variation > 0 ? '+' : ''}${variation}` : '')}
-      ${renderKpiCard('Utilisateurs totaux', users, `Nouveaux : ${formatNumber(newUsers)} • Récurrents : ${formatNumber(returningUsers)}`)}
+      ${renderKpiCard('Sessions totales', sessions, (variationPct !== null || variationNb !== null) ? `Variation : ${variationPct !== null ? (variationPct > 0 ? '+' : '') + variationPct + '%' : ''}${(variationPct !== null && variationNb !== null) ? ' • ' : ''}${variationNb !== null ? formatNumber(variationNb) : ''}` : '')}
+      ${renderKpiCard('Utilisateurs totaux', users, `Nouveaux : ${formatNumber(newUsers)} • Récurrents : ${formatNumber(returningUsers)}${usersVariationPct !== null ? ' • ' + (usersVariationPct > 0 ? '+' : '') + usersVariationPct + '%' : ''}${usersVariationNb !== null ? ' • ' + formatNumber(usersVariationNb) : ''}`)}
       ${renderKpiCard('Pages vues', pageviews)}
       ${renderKpiCard('Durée moyenne de session', avgSession)}
     </div>
@@ -210,6 +227,10 @@ function renderSearchConsole(searchRows) {
 
   const impressionsWeb = safeNumber(webRow['Impressions totales']);
   const positionWeb = safeNumber(webRow['Position moyenne']);
+  const impressionsVariationPct = parsePercent(webRow['Variation impressions (%)']) ?? parsePercent(webRow['Variation impressions']);
+  const impressionsVariationNb = safeNumber(webRow['Variation impressions (nb)']) ?? safeNumber(webRow['Variation impressions (nb)']);
+  const positionVariationPct = parsePercent(webRow['Variation position (%)']) ?? parsePercent(webRow['Variation position']);
+  const positionVariationNb = safeNumber(webRow['Variation position (nb)']) ?? safeNumber(webRow['Variation position (nb)']);
   const impressionsDiscover = discoverRow ? safeNumber(discoverRow['Impressions totales']) : null;
 
   const discoverContent = discoverRow
@@ -218,8 +239,8 @@ function renderSearchConsole(searchRows) {
 
   return renderSection('Search Console', `
     <div class="cards-grid">
-      ${renderKpiCard('Impressions Search', impressionsWeb)}
-      ${renderKpiCard('Position moyenne', positionWeb)}
+      ${renderKpiCard('Impressions Search', impressionsWeb, impressionsVariationPct !== null ? `Variation : ${(impressionsVariationPct>0?'+':'')+impressionsVariationPct+'%'}` : (impressionsVariationNb !== null ? `Variation : ${formatNumber(impressionsVariationNb)}` : ''))}
+      ${renderKpiCard('Position moyenne', positionWeb, positionVariationPct !== null ? `Variation : ${(positionVariationPct>0?'+':'')+positionVariationPct+'%'}` : (positionVariationNb !== null ? `Variation : ${formatNumber(positionVariationNb)}` : ''))}
     </div>
     ${discoverContent}
   `);
@@ -236,34 +257,39 @@ function renderSocialBlocks(socialRows, topPostsRows) {
   return networks.map(network => {
     const row = socialRows.find(r => r['Réseau'] === network) || {};
     const topRows = topPostsRows.filter(post => post['Réseau'] === network).sort((a, b) => Number(a['Classement'] || 0) - Number(b['Classement'] || 0)).slice(0, 3);
-    const followers = safeNumber(row['Abonnés totaux']);
-    const variation = safeNumber(row['Variation abonnés']);
-    const impressions = safeNumber(row['Impressions totales']);
-    const reach = safeNumber(row['Portée totale']);
-    const engagementRate = row['Taux d’engagement moyen'] || '-';
-    const engagementTotal = safeNumber(row['Engagements totaux']);
+
+    const followers = safeNumber(row['Abonnés totaux'] ?? row['Abonnés']);
+    const variationFollowersNb = safeNumber(row['Variation abonnés nb'] ?? row['Variation abonnés (nb)']);
+    const variationFollowersPct = parsePercent(row['Variation abonnés %'] ?? row['Variation abonnés (%)'] ?? row['Variation abonnés']);
+
+    const impressions = safeNumber(row['Impressions totales'] ?? row['Impressions']);
+    const impressionsVariationNb = safeNumber(row['Variation impressions nb'] ?? row['Variation impressions (nb)']);
+    const impressionsVariationPct = parsePercent(row['Variation impression %'] ?? row['Variation impressions %'] ?? row['Variation impressions']);
+
+    const engagementTotal = safeNumber(row['Engagements totaux'] ?? row['Engagements']);
+    const engagementVariationNb = safeNumber(row['Variation engagements nb'] ?? row['Variation engagements (nb)']);
+    const engagementVariationPct = parsePercent(row['Variation engagements %'] ?? row['Variation engagements (%)']);
+
     const posts = safeNumber(row['Nombre de publications']);
-    const clicks = safeNumber(row['Clics vers le site web']);
+    const postsVariation = safeNumber(row['Variation nombre de publication'] ?? row['Variation nombre de publications']);
 
     const topTable = topRows.length
       ? renderTable('Top 3 posts', ['Classement', 'Aperçu', 'Impressions', 'Engagements', 'Taux d’engagement', 'Clics'], topRows.map(post => [
           post['Classement'],
           post['Aperçu légende'] || post['ID post/URL'] || '-',
-          formatNumber(safeNumber(post['Impressions'])),
-          formatNumber(safeNumber(post['Engagements'])),
-          post['Taux d’engagement'] || '-',
-          formatNumber(safeNumber(post['Clics vers le site web']))
+          formatNumber(safeNumber(post['Impressions'] ?? post['Impressions totales'])),
+          formatNumber(safeNumber(post['Engagements'] ?? post['Engagements totaux'])),
+          post['Taux d’engagement'] || post['Taux d’engagement moyen'] || '-',
+          formatNumber(safeNumber(post['Clics vers le site web'] ?? post['Clics']))
         ]))
       : '<p>Aucun top post disponible pour ce réseau cette semaine.</p>';
 
     return renderSection(network, `
       <div class="cards-grid">
-        ${renderKpiCard('Abonnés', followers, variation !== null ? `Variation : ${variation > 0 ? '+' : ''}${variation}` : '')}
-        ${renderKpiCard('Impressions', impressions)}
-        ${renderKpiCard('Portée', reach)}
-        ${renderKpiCard('Taux d’engagement', engagementRate)}
-        ${renderKpiCard('Engagements', engagementTotal)}
-        ${renderKpiCard('Publications', posts, clicks !== null ? `Clics site : ${formatNumber(clicks)}` : '')}
+        ${renderKpiCard('Abonnés', followers, (variationFollowersPct !== null || variationFollowersNb !== null) ? `Variation : ${variationFollowersPct !== null ? (variationFollowersPct>0?'+':'')+variationFollowersPct+'%' : ''}${(variationFollowersPct !== null && variationFollowersNb !== null) ? ' • ' : ''}${variationFollowersNb !== null ? formatNumber(variationFollowersNb) : ''}` : '')}
+        ${renderKpiCard('Impressions', impressions, (impressionsVariationPct !== null || impressionsVariationNb !== null) ? `Variation : ${impressionsVariationPct !== null ? (impressionsVariationPct>0?'+':'')+impressionsVariationPct+'%' : ''}${(impressionsVariationPct !== null && impressionsVariationNb !== null) ? ' • ' : ''}${impressionsVariationNb !== null ? formatNumber(impressionsVariationNb) : ''}` : '')}
+        ${renderKpiCard('Engagements', engagementTotal, (engagementVariationPct !== null || engagementVariationNb !== null) ? `Variation : ${engagementVariationPct !== null ? (engagementVariationPct>0?'+':'')+engagementVariationPct+'%' : ''}${(engagementVariationPct !== null && engagementVariationNb !== null) ? ' • ' : ''}${engagementVariationNb !== null ? formatNumber(engagementVariationNb) : ''}` : '')}
+        ${renderKpiCard('Publications', posts, postsVariation !== null ? `Variation : ${formatNumber(postsVariation)}` : '')}
       </div>
       ${topTable}
     `);
@@ -285,13 +311,15 @@ function renderDashboard() {
   const topPagesTable = sheetErrors.TopPages
     ? renderSectionError('Top 5 pages de la semaine', sheetErrors.TopPages)
     : topPages.length
-      ? renderTable('Top 5 pages de la semaine', ['Classement', 'URL page', 'Titre page', 'Sessions', 'Pages vues', 'Durée moyenne de session'], topPages.map(page => [
+      ? renderTable('Top 5 pages de la semaine', ['Classement', 'URL page', 'Titre page', 'Sessions', 'Pages vues', 'Durée moyenne de session', 'Auteur', 'Image URL'], topPages.map(page => [
           page['Classement'],
           page['URL page'],
           page['Titre page'],
           formatNumber(safeNumber(page['Sessions'])),
           formatNumber(safeNumber(page['Pages vues'])),
-          page['Durée moyenne de session'] || '-'
+          page['Durée moyenne de session'] || '-',
+          page['Auteur'] || '-',
+          page['Image URL'] || '-'
         ]))
       : '<p>Aucun top page disponible pour cette semaine.</p>';
 
