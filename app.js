@@ -21,6 +21,7 @@ const dashboardContent = document.getElementById('dashboardContent');
 const googleSignIn = document.getElementById('googleSignIn');
 const googleSignInCenter = document.getElementById('googleSignInCenter');
 const downloadPdf = document.getElementById('downloadPdf');
+const sendToDrive = document.getElementById('sendToDrive');
 const userInfo = document.getElementById('userInfo');
 const weekSelect = document.getElementById('weekSelect');
 const loginScreen = document.getElementById('loginScreen');
@@ -605,6 +606,54 @@ async function handleGoogleSignIn() {
   tokenClient.requestAccessToken();
 }
 
+async async function buildDashboardPdf() {
+  const element = document.querySelector('#dashboardWrapper');
+  const canvasLib = window.html2canvas;
+  const jsPDFNamespace = window.jspdf || window.jsPDF;
+  const jsPDFClass = jsPDFNamespace?.jsPDF || jsPDFNamespace;
+
+  if (!element || !canvasLib || !jsPDFClass) {
+    throw new Error('Impossible de générer le PDF pour le moment.');
+  }
+
+  await waitForImages(element);
+  const canvas = await canvasLib(element, {
+    scale: 2,
+    backgroundColor: '#f6f7f8',
+    scrollY: -window.scrollY,
+    useCORS: true,
+    allowTaint: true,
+    imageTimeout: 15000,
+    logging: false
+  });
+
+  const imgData = canvas.toDataURL('image/jpeg', 0.95);
+  const pdf = new jsPDFClass({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+
+  const weekNumber = String(currentWeekCode || '').match(/W(\d+)/i)?.[1] || 'XX';
+  const pdfName = currentRadio === 'Radio Lac'
+    ? `PV séance antenne S${weekNumber} RL (Chiffres RS).pdf`
+    : `PV séance antenne S${weekNumber} One (Chiffres RS).pdf`;
+
+  return { pdf, pdfName };
+}
+
 async function downloadDashboardPdf() {
   clearAlert();
   const button = downloadPdf;
@@ -612,56 +661,49 @@ async function downloadDashboardPdf() {
   button.disabled = true;
   button.textContent = 'Génération PDF…';
 
-  const element = document.querySelector('#dashboardWrapper');
-  const canvasLib = window.html2canvas;
-  const jsPDFNamespace = window.jspdf || window.jsPDF;
-  const jsPDFClass = jsPDFNamespace?.jsPDF || jsPDFNamespace;
-
-  if (!element || !canvasLib || !jsPDFClass) {
-    showAlert('Impossible de générer le PDF pour le moment.');
-    button.disabled = false;
-    button.textContent = 'Télécharger en PDF';
-    return;
-  }
-
   try {
-    await waitForImages(element);
-    const canvas = await canvasLib(element, {
-      scale: 2,
-      backgroundColor: '#f6f7f8',
-      scrollY: -window.scrollY,
-      useCORS: true,
-      allowTaint: true,
-      imageTimeout: 15000,
-      logging: false
-    });
-
-    const imgData = canvas.toDataURL('image/jpeg', 0.95);
-    const pdf = new jsPDFClass({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
-    const imgWidth = pageWidth;
-    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    let heightLeft = imgHeight;
-    let position = 0;
-
-    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-    heightLeft -= pageHeight;
-
-    while (heightLeft > 0) {
-      position = heightLeft - imgHeight;
-      pdf.addPage();
-      pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
-    }
-
-    pdf.save(`${currentRadio.replace(/\s+/g, '_')}_${currentWeekCode || 'rapport'}.pdf`);
+    const { pdf, pdfName } = await buildDashboardPdf();
+    pdf.save(pdfName);
   } catch (error) {
     console.error(error);
-    showAlert('Échec de la génération du PDF.');
+    showAlert(error.message || 'Échec de la génération du PDF.');
   } finally {
     button.disabled = false;
     button.textContent = 'Télécharger en PDF';
+  }
+}
+
+async function sendDashboardPdfToDrive() {
+  clearAlert();
+  const button = sendToDrive;
+  if (!button) return;
+  button.disabled = true;
+  button.textContent = 'Envoi en cours…';
+
+  try {
+    const { pdf, pdfName } = await buildDashboardPdf();
+    const pdfBlob = pdf.output('blob');
+    const formData = new FormData();
+    formData.append('file', pdfBlob, pdfName);
+    formData.append('filename', pdfName);
+    formData.append('radio', currentRadio);
+
+    const response = await fetch('https://hook.eu2.make.com/7eb68jodu4d75scvsla2e7c71nrpzyjg', {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!response.ok) {
+      throw new Error('Échec de l’envoi vers le webhook.');
+    }
+
+    showAlert('PDF envoyé avec succès sur le Drive.');
+  } catch (error) {
+    console.error(error);
+    showAlert(error.message || 'Échec de l’envoi du PDF.');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Envoyer sur le Drive';
   }
 }
 
@@ -687,6 +729,7 @@ function init() {
     });
   }
   downloadPdf.addEventListener('click', downloadDashboardPdf);
+  sendToDrive.addEventListener('click', sendDashboardPdfToDrive);
   weekSelect.addEventListener('change', event => {
     currentWeekCode = event.target.value;
     renderDashboard();
