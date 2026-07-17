@@ -633,7 +633,7 @@ async function handleGoogleSignIn() {
   tokenClient.requestAccessToken();
 }
 
-async async function buildDashboardPdf() {
+async function buildDashboardPdf() {
   const element = document.querySelector('#dashboardWrapper');
   const canvasLib = window.html2canvas;
   const jsPDFNamespace = window.jspdf || window.jsPDF;
