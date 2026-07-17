@@ -198,26 +198,36 @@ function getTopRankedPages(pages) {
 }
 
 function getArticleLinkUrl(page, radio) {
-  const rawUrl = page['URL page'] || '#';
+  const rawUrl = [
+    page['URL page'],
+    page['URL'],
+    page['URL article'],
+    page['Lien'],
+    page['Lien article'],
+    page['Link']
+  ].find(value => Boolean(value));
+
   const normalizedRadio = normalizeText(radio);
-  if (!rawUrl || rawUrl === '#') return rawUrl;
+  if (!rawUrl || rawUrl === '#') return rawUrl || '#';
+
+  const targetHost = normalizedRadio === 'radio lac' ? 'radiolac.ch' : 'onefm.ch';
+  const rewrittenUrl = String(rawUrl).replace(/https?:\/\/acogne\.github\.io/gi, `https://${targetHost}`);
+
+  if (rewrittenUrl !== rawUrl) {
+    return rewrittenUrl;
+  }
 
   try {
     const url = new URL(rawUrl);
-    const host = url.host.toLowerCase();
-
-    if (host.includes('acogne.github.io')) {
-      if (normalizedRadio === 'radio lac') {
-        url.host = 'radiolac.ch';
-      } else {
-        url.host = 'onefm.ch';
-      }
+    if (url.host.toLowerCase().includes('acogne.github.io')) {
+      url.host = targetHost;
+      return url.toString();
     }
-
-    return url.toString();
   } catch (e) {
-    return rawUrl;
+    // ignore and return original string
   }
+
+  return rawUrl;
 }
 
 function renderTopPagesCards(pages, radio) {
