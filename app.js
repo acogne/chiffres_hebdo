@@ -15,6 +15,7 @@ let currentWeekCode = null;
 let rawData = {};
 let sheetErrors = {};
 let userProfile = null;
+let googleAuthReady = false;
 
 const alertContainer = document.getElementById('alertContainer');
 const dashboardContent = document.getElementById('dashboardContent');
@@ -33,6 +34,29 @@ function showAlert(message) {
 
 function clearAlert() {
   alertContainer.innerHTML = '';
+}
+
+function waitForGoogleAuth() {
+  return new Promise((resolve, reject) => {
+    const startedAt = Date.now();
+
+    const check = () => {
+      if (window.google?.accounts?.oauth2) {
+        googleAuthReady = true;
+        resolve();
+        return;
+      }
+
+      if (Date.now() - startedAt > 15000) {
+        reject(new Error('Impossible de charger Google Identity Services.'));
+        return;
+      }
+
+      setTimeout(check, 250);
+    };
+
+    check();
+  });
 }
 
 function updateStatus() {
@@ -551,8 +575,11 @@ async function fetchUserProfile() {
 
 async function handleGoogleSignIn() {
   clearAlert();
-  if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
-    showAlert('Chargement de Google en cours… veuillez réessayer dans quelques secondes.');
+
+  try {
+    await waitForGoogleAuth();
+  } catch (error) {
+    showAlert(error.message || 'Impossible de charger Google Identity Services.');
     return;
   }
 
@@ -730,6 +757,26 @@ function init() {
         handleGoogleSignIn();
       }
     });
+  }
+
+  if (googleSignInCenter) {
+    googleSignInCenter.onclick = () => {
+      if (token) {
+        ensureDashboardVisible();
+      } else {
+        handleGoogleSignIn();
+      }
+    };
+  }
+
+  if (googleSignIn) {
+    googleSignIn.onclick = () => {
+      if (token) {
+        ensureDashboardVisible();
+      } else {
+        handleGoogleSignIn();
+      }
+    };
   }
 
   if (downloadPdf) {
