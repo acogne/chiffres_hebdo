@@ -159,6 +159,60 @@ function renderTable(title, headers, rows) {
   return `<div class="section-card table-block"><div class="section-title"><h2>${title}</h2></div><table><thead><tr>${thead}</tr></thead><tbody>${tbody}</tbody></table></div>`;
 }
 
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function getTopRankedPages(pages) {
+  return [...pages]
+    .filter(page => page && (page['Classement'] || page['Classement'] === 0))
+    .sort((a, b) => {
+      const aRank = Number(a['Classement']);
+      const bRank = Number(b['Classement']);
+      if (!Number.isFinite(aRank) && !Number.isFinite(bRank)) return 0;
+      if (!Number.isFinite(aRank)) return 1;
+      if (!Number.isFinite(bRank)) return -1;
+      return aRank - bRank;
+    })
+    .slice(0, 3);
+}
+
+function renderTopPagesCards(pages) {
+  const rankedPages = getTopRankedPages(pages);
+  if (!rankedPages.length) return '<p>Aucun top page disponible pour cette semaine.</p>';
+
+  const cards = rankedPages.map((page, index) => {
+    const rank = page['Classement'] || index + 1;
+    const title = page['Titre page'] || 'Titre indisponible';
+    const author = page['Auteur'] || '-';
+    const imageUrl = page['Image URL'] || '';
+    const linkUrl = page['URL page'] || '#';
+    const views = formatNumber(safeNumber(page['Pages vues']));
+    const imageMarkup = imageUrl
+      ? `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" class="top-page-image"></a>`
+      : `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="top-page-image-placeholder">Aucune image</a>`;
+
+    return `
+      <article class="top-page-card">
+        <div class="top-page-rank">#${escapeHtml(rank)}</div>
+        <div class="top-page-image-wrap">${imageMarkup}</div>
+        <div class="top-page-content">
+          <h3>${escapeHtml(title)}</h3>
+          <p class="top-page-author">${escapeHtml(author)}</p>
+          <p class="top-page-views">${escapeHtml(views)} vues</p>
+        </div>
+      </article>
+    `;
+  }).join('');
+
+  return `<div class="top-pages-grid">${cards}</div>`;
+}
+
 function renderSection(title, content) {
   return `<section class="section-card"><div class="section-title"><h2>${title}</h2></div>${content}</section>`;
 }
@@ -308,26 +362,17 @@ function renderDashboard() {
   const topPages = filterByRadioAndWeek(rawData.TopPages, currentRadio);
   const topPosts = filterByRadioAndWeek(rawData.TopPosts, currentRadio);
 
-  const topPagesTable = sheetErrors.TopPages
-    ? renderSectionError('Top 5 pages de la semaine', sheetErrors.TopPages)
+  const topPagesSection = sheetErrors.TopPages
+    ? renderSectionError('Top 3 de la semaine', sheetErrors.TopPages)
     : topPages.length
-      ? renderTable('Top 5 pages de la semaine', ['Classement', 'URL page', 'Titre page', 'Sessions', 'Pages vues', 'Durée moyenne de session', 'Auteur', 'Image URL'], topPages.map(page => [
-          page['Classement'],
-          page['URL page'],
-          page['Titre page'],
-          formatNumber(safeNumber(page['Sessions'])),
-          formatNumber(safeNumber(page['Pages vues'])),
-          page['Durée moyenne de session'] || '-',
-          page['Auteur'] || '-',
-          page['Image URL'] || '-'
-        ]))
-      : '<p>Aucun top page disponible pour cette semaine.</p>';
+      ? renderSection('Top 3 de la semaine', renderTopPagesCards(topPages))
+      : renderSection('Top 3 de la semaine', '<p>Aucun top page disponible pour cette semaine.</p>');
 
   const topPostsError = sheetErrors.TopPosts ? renderSectionError('Top posts', sheetErrors.TopPosts) : '';
 
   dashboardContent.innerHTML = `
     ${renderOverviewWeb(webRows)}
-    ${topPagesTable}
+    ${topPagesSection}
     ${renderSearchConsole(searchRows)}
     ${topPostsError}
     ${renderSocialBlocks(socialRows, topPosts)}
