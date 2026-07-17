@@ -127,8 +127,23 @@ function getLatestWeekCodeFromAll() {
   return [...new Set(codes)].sort().pop() || null;
 }
 
+function normalizeText(value) {
+  return String(value ?? '')
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, ' ');
+}
+
 function filterByRadioAndWeek(data, radio) {
-  return data.filter(row => row['Radio'] === radio && row['Code semaine'] === currentWeekCode);
+  if (!Array.isArray(data)) return [];
+  const targetRadio = normalizeText(radio);
+  const targetWeek = normalizeText(currentWeekCode);
+
+  return data.filter(row => {
+    const rowRadio = normalizeText(row['Radio']);
+    const rowWeek = normalizeText(row['Code semaine']);
+    return rowRadio === targetRadio && rowWeek === targetWeek;
+  });
 }
 
 function safeNumber(value) {
