@@ -183,6 +183,33 @@ function escapeHtml(value) {
     .replace(/'/g, '&#39;');
 }
 
+function waitForImages(element) {
+  const images = Array.from(element?.querySelectorAll('img') || []);
+  if (!images.length) return Promise.resolve();
+
+  return Promise.all(images.map(img => {
+    if (img.complete && img.naturalWidth > 0) {
+      return Promise.resolve();
+    }
+
+    return new Promise(resolve => {
+      let settled = false;
+      const finish = () => {
+        if (settled) return;
+        settled = true;
+        img.removeEventListener('load', onLoad);
+        img.removeEventListener('error', onError);
+        resolve();
+      };
+      const onLoad = () => finish();
+      const onError = () => finish();
+      img.addEventListener('load', onLoad);
+      img.addEventListener('error', onError);
+      setTimeout(finish, 15000);
+    });
+  }));
+}
+
 function getTopRankedPages(pages) {
   return [...pages]
     .filter(page => page && (page['Classement'] || page['Classement'] === 0))
@@ -244,7 +271,7 @@ function renderTopPagesCards(pages, radio) {
     const linkUrl = getArticleLinkUrl(page, radio);
     const views = formatNumber(safeNumber(page['Pages vues']));
     const imageMarkup = imageUrl
-      ? `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" class="top-page-image"></a>`
+      ? `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" class="top-page-image" crossorigin="anonymous"></a>`
       : `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="top-page-image-placeholder">Aucune image</a>`;
 
     return `
@@ -575,7 +602,7 @@ async function handleGoogleSignIn() {
   tokenClient.requestAccessToken();
 }
 
-function downloadDashboardPdf() {
+async function downloadDashboardPdf() {
   clearAlert();
   const button = downloadPdf;
   if (!button) return;
@@ -594,37 +621,45 @@ function downloadDashboardPdf() {
     return;
   }
 
-  canvasLib(element, { scale: 2, backgroundColor: '#f6f7f8', scrollY: -window.scrollY })
-    .then(canvas => {
-      const imgData = canvas.toDataURL('image/jpeg', 0.95);
-      const pdf = new jsPDFClass({ unit: 'mm', format: 'a4', orientation: 'portrait' });
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-      const imgWidth = pageWidth;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+  try {
+    await waitForImages(element);
+    const canvas = await canvasLib(element, {
+      scale: 2,
+      backgroundColor: '#f6f7f8',
+      scrollY: -window.scrollY,
+      useCORS: true,
+      allowTaint: true,
+      imageTimeout: 15000,
+      logging: false
+    });
 
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const pdf = new jsPDFClass({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pageWidth;
+    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
       pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
       heightLeft -= pageHeight;
+    }
 
-      while (heightLeft > 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
-
-      pdf.save(`${currentRadio.replace(/\s+/g, '_')}_${currentWeekCode || 'rapport'}.pdf`);
-    })
-    .catch(error => {
-      console.error(error);
-      showAlert('Échec de la génération du PDF.');
-    })
-    .finally(() => {
-      button.disabled = false;
-      button.textContent = 'Télécharger en PDF';
-    });
+    pdf.save(`${currentRadio.replace(/\s+/g, '_')}_${currentWeekCode || 'rapport'}.pdf`);
+  } catch (error) {
+    console.error(error);
+    showAlert('Échec de la génération du PDF.');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Télécharger en PDF';
+  }
 }
 
 function init() {
