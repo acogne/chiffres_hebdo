@@ -270,8 +270,11 @@ function renderTopPagesCards(pages, radio) {
     const imageUrl = page['Image URL'] || '';
     const linkUrl = getArticleLinkUrl(page, radio);
     const views = formatNumber(safeNumber(page['Pages vues']));
-    const imageMarkup = imageUrl
-      ? `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" class="top-page-image" crossorigin="anonymous"></a>`
+    const hasImage = Boolean(imageUrl);
+    const imageMarkup = hasImage
+      ? `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="top-page-image-link">
+          <img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" class="top-page-image" crossorigin="anonymous" loading="lazy" onerror="this.style.display='none'; this.parentElement.classList.add('top-page-image-broken'); this.parentElement.innerHTML = '<span class=\"top-page-image-fallback\">Image indisponible</span>';" />
+        </a>`
       : `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer" class="top-page-image-placeholder">Aucune image</a>`;
 
     return `
