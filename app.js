@@ -197,16 +197,41 @@ function getTopRankedPages(pages) {
     .slice(0, 3);
 }
 
-function renderTopPagesCards(pages) {
+function getArticleLinkUrl(page, radio) {
+  const rawUrl = page['URL page'] || '#';
+  const normalizedRadio = normalizeText(radio);
+  if (!rawUrl || rawUrl === '#') return rawUrl;
+
+  try {
+    const url = new URL(rawUrl);
+    const host = url.host.toLowerCase();
+
+    if (host.includes('acogne.github.io')) {
+      if (normalizedRadio === 'radio lac') {
+        url.host = 'radiolac.ch';
+      } else {
+        url.host = 'onefm.ch';
+      }
+    }
+
+    return url.toString();
+  } catch (e) {
+    return rawUrl;
+  }
+}
+
+function renderTopPagesCards(pages, radio) {
   const rankedPages = getTopRankedPages(pages);
   if (!rankedPages.length) return '<p>Aucun top page disponible pour cette semaine.</p>';
 
   const cards = rankedPages.map((page, index) => {
     const rank = page['Classement'] || index + 1;
     const title = page['Titre page'] || 'Titre indisponible';
-    const author = page['Auteur'] || '-';
+    const author = normalizeText(page['Auteur']) === 'par rédaction' && normalizeText(radio) === 'radio lac'
+      ? 'Par ATS-Keystone'
+      : (page['Auteur'] || '-');
     const imageUrl = page['Image URL'] || '';
-    const linkUrl = page['URL page'] || '#';
+    const linkUrl = getArticleLinkUrl(page, radio);
     const views = formatNumber(safeNumber(page['Pages vues']));
     const imageMarkup = imageUrl
       ? `<a href="${escapeHtml(linkUrl)}" target="_blank" rel="noopener noreferrer"><img src="${escapeHtml(imageUrl)}" alt="${escapeHtml(title)}" class="top-page-image"></a>`
@@ -380,7 +405,7 @@ function renderDashboard() {
   const topPagesSection = sheetErrors.TopPages
     ? renderSectionError('Top 3 de la semaine', sheetErrors.TopPages)
     : topPages.length
-      ? renderSection('Top 3 de la semaine', renderTopPagesCards(topPages))
+      ? renderSection('Top 3 de la semaine', renderTopPagesCards(topPages, currentRadio))
       : renderSection('Top 3 de la semaine', '<p>Aucun top page disponible pour cette semaine.</p>');
 
   const topPostsError = sheetErrors.TopPosts ? renderSectionError('Top posts', sheetErrors.TopPosts) : '';
