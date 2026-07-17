@@ -552,7 +552,7 @@ async function fetchUserProfile() {
 async function handleGoogleSignIn() {
   clearAlert();
   if (!window.google || !window.google.accounts || !window.google.accounts.oauth2) {
-    showAlert('Impossible de charger Google Identity Services.');
+    showAlert('Chargement de Google en cours… veuillez réessayer dans quelques secondes.');
     return;
   }
 
@@ -711,14 +711,17 @@ function init() {
   updateStatus();
   enableTabs();
   setAccentForRadio();
-  // Primary sign-in buttons: if already authenticated, ensure dashboard shows; otherwise start auth
-  googleSignIn.addEventListener('click', () => {
-    if (token) {
-      ensureDashboardVisible();
-    } else {
-      handleGoogleSignIn();
-    }
-  });
+
+  if (googleSignIn) {
+    googleSignIn.addEventListener('click', () => {
+      if (token) {
+        ensureDashboardVisible();
+      } else {
+        handleGoogleSignIn();
+      }
+    });
+  }
+
   if (googleSignInCenter) {
     googleSignInCenter.addEventListener('click', () => {
       if (token) {
@@ -728,17 +731,33 @@ function init() {
       }
     });
   }
-  downloadPdf.addEventListener('click', downloadDashboardPdf);
-  sendToDrive.addEventListener('click', sendDashboardPdfToDrive);
-  weekSelect.addEventListener('change', event => {
-    currentWeekCode = event.target.value;
-    renderDashboard();
-  });
+
+  if (downloadPdf) {
+    downloadPdf.addEventListener('click', downloadDashboardPdf);
+  }
+
+  if (sendToDrive) {
+    sendToDrive.addEventListener('click', sendDashboardPdfToDrive);
+  }
+
+  if (weekSelect) {
+    weekSelect.addEventListener('change', event => {
+      currentWeekCode = event.target.value;
+      renderDashboard();
+    });
+  }
+
   showLoginScreen();
-  dashboardContent.innerHTML = '<p>Connectez-vous avec Google pour charger les données.</p>';
+  if (dashboardContent) {
+    dashboardContent.innerHTML = '<p>Connectez-vous avec Google pour charger les données.</p>';
+  }
 }
 
-init();
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init, { once: true });
+} else {
+  init();
+}
 
 // Ensure dashboard will be rendered and shown when token is available
 async function ensureDashboardVisible() {
