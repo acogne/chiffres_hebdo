@@ -189,6 +189,14 @@ function formatNumber(value) {
   return new Intl.NumberFormat('fr-FR').format(value);
 }
 
+function formatVariationDetail(pctValue, nbValue) {
+  const pctText = pctValue !== null ? `${pctValue > 0 ? '+' : ''}${pctValue}%` : '';
+  const nbText = nbValue !== null ? formatNumber(nbValue) : '';
+
+  if (!pctText && !nbText) return '';
+  return `${pctText}${pctText && nbText ? ' • ' : ''}${nbText}`;
+}
+
 function renderKpiCard(label, value, detail = '') {
   return `<div class="kpi-card"><strong>${formatNumber(value)}</strong><span>${label}</span>${detail ? `<div class="small-caption">${detail}</div>` : ''}</div>`;
 }
@@ -354,21 +362,31 @@ function renderOverviewWeb(siteRows) {
   const pagesVariationPct = parsePercent(row['Variation pages vues (%)']) ?? parsePercent(row['Variation pages vues']);
   const pagesVariationNb = safeNumber(row['Variation pages vues (nb)']) ?? safeNumber(row['Variation pages vues']);
 
+  // Traffic source variations
+  const organicVariationPct = parsePercent(row['Variation trafic organique (%)']) ?? parsePercent(row['Variation trafic organique']);
+  const organicVariationNb = safeNumber(row['Variation trafic organique (nb)']) ?? safeNumber(row['Variation trafic organique']);
+  const socialsVariationPct = parsePercent(row['Variation trafic réseaux sociaux (%)']) ?? parsePercent(row['Variation trafic réseaux sociaux']);
+  const socialsVariationNb = safeNumber(row['Variation trafic réseaux sociaux (nb)']) ?? safeNumber(row['Variation trafic réseaux sociaux']);
+  const directVariationPct = parsePercent(row['Variation trafic direct (%)']) ?? parsePercent(row['Variation trafic direct']);
+  const directVariationNb = safeNumber(row['Variation trafic direct (nb)']) ?? safeNumber(row['Variation trafic direct']);
+  const referralVariationPct = parsePercent(row['Variation trafic référent (%)']) ?? parsePercent(row['Variation trafic référent']);
+  const referralVariationNb = safeNumber(row['Variation trafic référent (nb)']) ?? safeNumber(row['Variation trafic référent']);
+
   const content = `
     <div class="cards-grid">
-      ${renderKpiCard('Sessions totales', sessions, (variationPct !== null || variationNb !== null) ? `Variation : ${variationPct !== null ? (variationPct > 0 ? '+' : '') + variationPct + '%' : ''}${(variationPct !== null && variationNb !== null) ? ' • ' : ''}${variationNb !== null ? formatNumber(variationNb) : ''}` : '')}
+      ${renderKpiCard('Sessions totales', sessions, formatVariationDetail(variationPct, variationNb))}
       ${renderKpiCard('Utilisateurs totaux', users, `Nouveaux : ${formatNumber(newUsers)} • Récurrents : ${formatNumber(returningUsers)}${usersVariationPct !== null ? ' • ' + (usersVariationPct > 0 ? '+' : '') + usersVariationPct + '%' : ''}${usersVariationNb !== null ? ' • ' + formatNumber(usersVariationNb) : ''}`)}
-      ${renderKpiCard('Pages vues', pageviews)}
+      ${renderKpiCard('Pages vues', pageviews, formatVariationDetail(pagesVariationPct, pagesVariationNb))}
       ${renderKpiCard('Durée moyenne de session', avgSession)}
     </div>
     <div class="data-grid">
       <div class="section-card">
         <div class="section-title"><h2>Sources de trafic</h2></div>
         <div class="cards-grid">
-          ${renderKpiCard('Organique', organic)}
-          ${renderKpiCard('Réseaux sociaux', socials)}
-          ${renderKpiCard('Direct', direct)}
-          ${renderKpiCard('Référent', referral)}
+          ${renderKpiCard('Organique', organic, formatVariationDetail(organicVariationPct, organicVariationNb))}
+          ${renderKpiCard('Réseaux sociaux', socials, formatVariationDetail(socialsVariationPct, socialsVariationNb))}
+          ${renderKpiCard('Direct', direct, formatVariationDetail(directVariationPct, directVariationNb))}
+          ${renderKpiCard('Référent', referral, formatVariationDetail(referralVariationPct, referralVariationNb))}
         </div>
       </div>
     </div>
@@ -398,8 +416,8 @@ function renderSearchConsole(searchRows) {
 
   return renderSection('Search Console', `
     <div class="cards-grid">
-      ${renderKpiCard('Impressions Search', impressionsWeb, impressionsVariationPct !== null ? `Variation : ${(impressionsVariationPct>0?'+':'')+impressionsVariationPct+'%'}` : (impressionsVariationNb !== null ? `Variation : ${formatNumber(impressionsVariationNb)}` : ''))}
-      ${renderKpiCard('Position moyenne', positionWeb, positionVariationPct !== null ? `Variation : ${(positionVariationPct>0?'+':'')+positionVariationPct+'%'}` : (positionVariationNb !== null ? `Variation : ${formatNumber(positionVariationNb)}` : ''))}
+      ${renderKpiCard('Impressions Search', impressionsWeb, formatVariationDetail(impressionsVariationPct, impressionsVariationNb))}
+      ${renderKpiCard('Position moyenne', positionWeb, formatVariationDetail(positionVariationPct, positionVariationNb))}
     </div>
     ${discoverContent}
   `);
