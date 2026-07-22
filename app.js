@@ -435,8 +435,8 @@ function renderSearchConsole(searchRows) {
 
   return renderSection('Search Console', `
     <div class="cards-grid">
-      ${renderKpiCard('Impressions Search', impressionsWeb, formatVariationDetail(impressionsVariationPct, impressionsVariationNb))}
-      ${renderKpiCard('Position moyenne', positionWeb, formatVariationDetail(positionVariationPct, positionVariationNb))}
+      ${renderKpiCard('Impressions Search', impressionsWeb, formatVariationDetail(impressionsVariationPct, impressionsVariationNb), getTrendDirection(impressionsVariationPct, impressionsVariationNb))}
+      ${renderKpiCard('Position moyenne', positionWeb, formatVariationDetail(positionVariationPct, positionVariationNb), getTrendDirection(positionVariationPct, positionVariationNb))}
     </div>
     ${discoverContent}
   `);
