@@ -261,10 +261,31 @@ h1 {
   min-height: 110px;
 }
 
+.kpi-value-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .kpi-card strong {
   display: block;
   font-size: 1.75rem;
-  margin-bottom: 8px;
+  line-height: 1;
+}
+
+.kpi-trend {
+  font-size: 1.75rem;
+  line-height: 1;
+  font-weight: 700;
+}
+
+.kpi-trend.positive {
+  color: #15803d;
+}
+
+.kpi-trend.negative {
+  color: #dc2626;
 }
 
 .kpi-card span {

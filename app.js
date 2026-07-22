@@ -197,8 +197,23 @@ function formatVariationDetail(pctValue, nbValue) {
   return `${pctText}${pctText && nbText ? ' • ' : ''}${nbText}`;
 }
 
-function renderKpiCard(label, value, detail = '') {
-  return `<div class="kpi-card"><strong>${formatNumber(value)}</strong><span>${label}</span>${detail ? `<div class="small-caption">${detail}</div>` : ''}</div>`;
+function getTrendDirection(pctValue, nbValue) {
+  if (pctValue !== null && pctValue !== undefined) {
+    if (pctValue > 0) return 'positive';
+    if (pctValue < 0) return 'negative';
+  }
+
+  if (nbValue !== null && nbValue !== undefined) {
+    if (nbValue > 0) return 'positive';
+    if (nbValue < 0) return 'negative';
+  }
+
+  return '';
+}
+
+function renderKpiCard(label, value, detail = '', trendDirection = '') {
+  const trendMarkup = trendDirection ? `<span class="kpi-trend ${trendDirection}" aria-hidden="true">${trendDirection === 'positive' ? '↗' : '↘'}</span>` : '';
+  return `<div class="kpi-card"><div class="kpi-value-row"><strong>${formatNumber(value)}</strong>${trendMarkup}</div><span>${label}</span>${detail ? `<div class="small-caption">${detail}</div>` : ''}</div>`;
 }
 
 function renderTable(title, headers, rows) {
@@ -362,6 +377,10 @@ function renderOverviewWeb(siteRows) {
   const pagesVariationPct = parsePercent(row['Variation pages vues (%)']) ?? parsePercent(row['Variation pages vues']);
   const pagesVariationNb = safeNumber(row['Variation pages vues (nb)']) ?? safeNumber(row['Variation pages vues']);
 
+  // Duration variation
+  const durationVariationPct = parsePercent(row['Variation durée moyenne (%)']) ?? parsePercent(row['Variation durée moyenne']);
+  const durationVariationNb = safeNumber(row['Variation durée moyenne (nb)']) ?? safeNumber(row['Variation durée moyenne']);
+
   // Traffic source variations
   const organicVariationPct = parsePercent(row['Variation trafic organique (%)']) ?? parsePercent(row['Variation trafic organique']);
   const organicVariationNb = safeNumber(row['Variation trafic organique (nb)']) ?? safeNumber(row['Variation trafic organique']);
@@ -374,19 +393,19 @@ function renderOverviewWeb(siteRows) {
 
   const content = `
     <div class="cards-grid">
-      ${renderKpiCard('Sessions totales', sessions, formatVariationDetail(variationPct, variationNb))}
-      ${renderKpiCard('Utilisateurs totaux', users, `Nouveaux : ${formatNumber(newUsers)} • Récurrents : ${formatNumber(returningUsers)}${usersVariationPct !== null ? ' • ' + (usersVariationPct > 0 ? '+' : '') + usersVariationPct + '%' : ''}${usersVariationNb !== null ? ' • ' + formatNumber(usersVariationNb) : ''}`)}
-      ${renderKpiCard('Pages vues', pageviews, formatVariationDetail(pagesVariationPct, pagesVariationNb))}
-      ${renderKpiCard('Durée moyenne de session', avgSession)}
+      ${renderKpiCard('Sessions totales', sessions, formatVariationDetail(variationPct, variationNb), getTrendDirection(variationPct, variationNb))}
+      ${renderKpiCard('Utilisateurs totaux', users, `Nouveaux : ${formatNumber(newUsers)} • Récurrents : ${formatNumber(returningUsers)}${usersVariationPct !== null ? ' • ' + (usersVariationPct > 0 ? '+' : '') + usersVariationPct + '%' : ''}${usersVariationNb !== null ? ' • ' + formatNumber(usersVariationNb) : ''}`, getTrendDirection(usersVariationPct, usersVariationNb))}
+      ${renderKpiCard('Pages vues', pageviews, formatVariationDetail(pagesVariationPct, pagesVariationNb), getTrendDirection(pagesVariationPct, pagesVariationNb))}
+      ${renderKpiCard('Durée moyenne de session', avgSession, formatVariationDetail(durationVariationPct, durationVariationNb), getTrendDirection(durationVariationPct, durationVariationNb))}
     </div>
     <div class="data-grid">
       <div class="section-card">
         <div class="section-title"><h2>Sources de trafic</h2></div>
         <div class="cards-grid">
-          ${renderKpiCard('Organique', organic, formatVariationDetail(organicVariationPct, organicVariationNb))}
-          ${renderKpiCard('Réseaux sociaux', socials, formatVariationDetail(socialsVariationPct, socialsVariationNb))}
-          ${renderKpiCard('Direct', direct, formatVariationDetail(directVariationPct, directVariationNb))}
-          ${renderKpiCard('Référent', referral, formatVariationDetail(referralVariationPct, referralVariationNb))}
+          ${renderKpiCard('Organique', organic, formatVariationDetail(organicVariationPct, organicVariationNb), getTrendDirection(organicVariationPct, organicVariationNb))}
+          ${renderKpiCard('Réseaux sociaux', socials, formatVariationDetail(socialsVariationPct, socialsVariationNb), getTrendDirection(socialsVariationPct, socialsVariationNb))}
+          ${renderKpiCard('Direct', direct, formatVariationDetail(directVariationPct, directVariationNb), getTrendDirection(directVariationPct, directVariationNb))}
+          ${renderKpiCard('Référent', referral, formatVariationDetail(referralVariationPct, referralVariationNb), getTrendDirection(referralVariationPct, referralVariationNb))}
         </div>
       </div>
     </div>
