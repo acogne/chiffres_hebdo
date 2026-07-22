@@ -264,7 +264,7 @@ h1 {
 .kpi-value-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 12px;
   margin-bottom: 8px;
 }
 
@@ -275,9 +275,23 @@ h1 {
 }
 
 .kpi-trend {
-  font-size: 1.75rem;
-  line-height: 1;
-  font-weight: 700;
+  font-size: 3.5rem;
+  line-height: 0.9;
+  font-weight: 800;
+  transform: translateX(4px);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.14);
+  animation: kpiTrendIn 420ms ease-out both;
+}
+
+@keyframes kpiTrendIn {
+  from {
+    opacity: 0;
+    transform: translateX(12px) scale(0.88);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(4px) scale(1);
+  }
 }
 
 .kpi-trend.positive {
